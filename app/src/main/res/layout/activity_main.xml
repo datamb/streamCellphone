@@ -1,18 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
 
-    <SurfaceView
-        android:id="@+id/camera_view"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+    <FrameLayout
+        android:id="@+id/camera_frame"
+        android:layout_width="383dp"
+        android:layout_height="415dp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextureView
+            android:id="@+id/texture_view"
+            android:layout_width="357dp"
+            android:layout_height="328dp" />
+    </FrameLayout>
 
     <Button
-        android:id="@+id/start_stream_button"
+        android:id="@+id/start_stop_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Start Stream"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true" />
-</RelativeLayout>
+        android:text="Start"
+        app:layout_constraintTop_toBottomOf="@id/camera_frame"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="16dp" />
+</androidx.constraintlayout.widget.ConstraintLayout>
+
+

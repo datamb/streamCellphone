@@ -38,7 +38,9 @@ dependencies {
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
 
+    implementation ('com.arthenica:mobile-ffmpeg-full:4.4.LTS')
+
     //implementation('com.arthenica:ffmpeg-kit-full:6.0-2')
 
-    implementation libs.ffmpeg.kit.full
+    //implementation libs.ffmpeg.kit.full
 }
