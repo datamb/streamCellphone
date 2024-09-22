@@ -185,12 +185,15 @@ public class MainActivity extends AppCompatActivity {
 
         // Substitua pelo seu servidor RTMP
         String rtmpUrl = "rtmp://192.168.0.134/live/stream";
-        String cmd = "-f lavfi -i anullsrc -f v4l2 -s 600x480 -r 30 -i /dev/video0 -c:v libx264 -b:v 1000k -f flv " + rtmpUrl;
+        //String cmd = "-f lavfi -i anullsrc -f v4l2 -s 600x480 -r 30 -i /dev/video0 -c:v libx264 -b:v 1000k -f flv " + rtmpUrl;
+        String cmd = "-y -f android_camera -s 600x480 -r 30 -i 0 -c:v libx264 -b:v 1000k -f flv " + rtmpUrl;
         ;
         FFmpeg.execute(cmd);
 
         //String cmd = "-f lavfi -i anullsrc -f v4l2 -s 600x480 -r 30 -i /dev/video0 -c:v libx264 -b:v 1000k -f flv " + rtmpUrl;
         //String cmd = "-f android_camera -i " + cameraId + " -c:v libx264 -b:v 1000k -f flv " + rtmpUrl;
+        //String cmd = "-f android_camera -input_queue_size 1024 -s 600x480 -r 30 -i 0 -c:v libx264 -b:v 1000k -f flv " + rtmpUrl;
+        //String cmd = "-f android_camera -s 600x480 -r 30 -i 0 -c:v libx264 -b:v 1000k -f flv " + rtmpUrl;
     }
 
     private void stopStreaming() {
