@@ -1,10 +1,10 @@
 package com.example.cam3;
 
-
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
@@ -20,7 +20,11 @@ public class MainActivity extends AppCompatActivity {
     private String videoPath;
     private Button buttonSelectVideo;
     private Button buttonStartStreaming;
+    private Button buttonStopStreaming;
     private TextView textViewVideoPath;
+    private boolean isStreaming = false;
+    private Handler handler;
+    private Thread streamThread;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,7 +33,10 @@ public class MainActivity extends AppCompatActivity {
 
         buttonSelectVideo = findViewById(R.id.buttonSelectVideo);
         buttonStartStreaming = findViewById(R.id.buttonStartStreaming);
+        buttonStopStreaming = findViewById(R.id.buttonStopStreaming);
         textViewVideoPath = findViewById(R.id.textViewVideoPath);
+
+        handler = new Handler();
 
         buttonSelectVideo.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -42,6 +49,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 startStreaming();
+            }
+        });
+
+        buttonStopStreaming.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                stopStreaming();
             }
         });
     }
@@ -75,24 +89,50 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startStreaming() {
-        // Caminho do vídeo selecionado. Pode ser ajustado conforme necessário
-        //videoPath = "/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Video/VID-20240903-WA0044.mp4";
-
-        // URL do servidor RTMP (exemplo)
-        String rtmpUrl = "rtmp://192.168.0.134/live/stream";
-
-        // Comando FFmpeg para streaming de vídeo
-        String ffmpegCommand = String.format("-re -i \"%s\" -c:v libx264 -preset veryfast -f flv \"%s\"", videoPath, rtmpUrl);
-
-        // Executa o comando FFmpeg de forma síncrona
-        int rc = FFmpeg.execute(ffmpegCommand);
-
-        // Verifica o código de retorno e loga o resultado
-        if (rc == 0) {
-            Log.i("FFmpeg", "Transmissão concluída com sucesso.");
-        } else {
-            Log.e("FFmpeg", "Erro na transmissão. Código de retorno: " + rc);
+        if (isStreaming) {
+            return;
         }
+
+        isStreaming = true;
+
+        streamThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (isStreaming) {
+                    // Caminho do vídeo selecionado
+                    String rtmpUrl = "rtmp://192.168.0.134/live/stream";
+                    String ffmpegCommand = String.format("-re -i \"%s\" -c:v libx264 -preset veryfast -f flv \"%s\"", videoPath, rtmpUrl);
+
+                    // Executa o comando FFmpeg de forma síncrona
+                    int rc = FFmpeg.execute(ffmpegCommand);
+
+                    // Verifica o código de retorno
+                    if (rc == 0) {
+                        Log.i("FFmpeg", "Transmissão em loop.");
+                    } else {
+                        Log.e("FFmpeg", "Erro na transmissão. Código de retorno: " + rc);
+                        break;
+                    }
+
+                    // Pequena pausa antes de reiniciar o loop
+                    try {
+                        Thread.sleep(1000); // 1 segundo de pausa antes de iniciar novamente
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+
+        streamThread.start();
+    }
+
+    private void stopStreaming() {
+        // Para a transmissão
+        isStreaming = false;
+        if (streamThread != null && streamThread.isAlive()) {
+            streamThread.interrupt();
+        }
+        Log.i("FFmpeg", "Transmissão interrompida.");
     }
 }
-

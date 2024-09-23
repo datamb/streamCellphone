@@ -6,27 +6,30 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <!-- Botão para selecionar o vídeo -->
+    <!-- Texto exibindo o caminho do vídeo -->
+    <TextView
+        android:id="@+id/textViewVideoPath"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Caminho do vídeo selecionado aparecerá aqui"
+        android:textSize="16sp"
+        android:padding="16dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Botão para selecionar um vídeo -->
     <Button
         android:id="@+id/buttonSelectVideo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Selecionar Vídeo"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="40dp" />
-
-    <!-- TextView para exibir o caminho do vídeo selecionado -->
-    <TextView
-        android:id="@+id/textViewVideoPath"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Nenhum vídeo selecionado"
-        app:layout_constraintTop_toBottomOf="@id/buttonSelectVideo"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="20dp" />
+        app:layout_constraintTop_toBottomOf="@id/textViewVideoPath"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        android:layout_marginTop="16dp" />
 
     <!-- Botão para iniciar a transmissão -->
     <Button
@@ -34,11 +37,22 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Iniciar Transmissão"
-        app:layout_constraintTop_toBottomOf="@id/textViewVideoPath"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="20dp"
-        android:enabled="false" /> <!-- Desativado até o vídeo ser selecionado -->
+        android:enabled="false"
+        app:layout_constraintTop_toBottomOf="@id/buttonSelectVideo"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        android:layout_marginTop="16dp" />
+
+    <!-- Botão para parar a transmissão -->
+    <Button
+        android:id="@+id/buttonStopStreaming"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Parar Transmissão"
+        android:enabled="false"
+        app:layout_constraintTop_toBottomOf="@id/buttonStartStreaming"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        android:layout_marginTop="16dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
-
