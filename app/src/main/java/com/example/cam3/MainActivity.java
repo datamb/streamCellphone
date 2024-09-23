@@ -1,245 +1,98 @@
 package com.example.cam3;
 
-import android.Manifest;
-import android.content.Context;
-import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.SurfaceTexture;
-import android.hardware.camera2.CameraAccessException;
-import android.hardware.camera2.CameraCaptureSession;
-import android.hardware.camera2.CameraCharacteristics;
-import android.hardware.camera2.CameraDevice;
-import android.hardware.camera2.CameraManager;
-import android.hardware.camera2.CaptureRequest;
+
+import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
-import android.util.Size;
-import android.view.Surface;
-import android.view.TextureView;
+import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.Toast;
-import androidx.annotation.NonNull;
+import android.widget.TextView;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
-import com.arthenica.mobileffmpeg.Config;
-import com.arthenica.mobileffmpeg.ExecuteCallback;
 import com.arthenica.mobileffmpeg.FFmpeg;
-
-import java.io.OutputStream;
-import java.util.Arrays;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final int CAMERA_PERMISSION_REQUEST_CODE = 1001;
-    private TextureView textureView;
-    private CameraDevice cameraDevice;
-    private CaptureRequest.Builder captureRequestBuilder;
-    private CameraCaptureSession cameraCaptureSession;
-    private boolean isStreaming = false;
-    private String rtmpUrl = "rtmp://192.168.0.134/live/stream"; // Substitua pelo seu servidor RTMP
-    private Process ffmpegProcess;
-    private OutputStream ffmpegInputStream;
+    private static final int REQUEST_VIDEO = 1;
+    private String videoPath;
+    private Button buttonSelectVideo;
+    private Button buttonStartStreaming;
+    private TextView textViewVideoPath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        textureView = findViewById(R.id.texture_view);
-        Button startStopButton = findViewById(R.id.start_stop_button);
+        buttonSelectVideo = findViewById(R.id.buttonSelectVideo);
+        buttonStartStreaming = findViewById(R.id.buttonStartStreaming);
+        textViewVideoPath = findViewById(R.id.textViewVideoPath);
 
-        // Verifique se as permissões necessárias foram concedidas
-        if (!checkPermissions()) {
-            requestPermissions();
-        } else {
-            setupTextureView();
-        }
-
-        startStopButton.setOnClickListener(new View.OnClickListener() {
+        buttonSelectVideo.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (!isStreaming) {
-                    startStreaming();
-                    startStopButton.setText("Stop");
-                } else {
-                    stopStreaming();
-                    startStopButton.setText("Start");
-                }
-                isStreaming = !isStreaming;
+                selectVideo();
+            }
+        });
+
+        buttonStartStreaming.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startStreaming();
             }
         });
     }
 
-    private boolean checkPermissions() {
-        return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET) == PackageManager.PERMISSION_GRANTED;
-    }
-
-    private void requestPermissions() {
-        ActivityCompat.requestPermissions(this,
-                new String[]{Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO, Manifest.permission.INTERNET},
-                CAMERA_PERMISSION_REQUEST_CODE);
+    private void selectVideo() {
+        // Abre a galeria para escolher o vídeo
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Video.Media.EXTERNAL_CONTENT_URI);
+        intent.setType("video/*");
+        startActivityForResult(intent, REQUEST_VIDEO);
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                setupTextureView();
-            } else {
-                Toast.makeText(this, "Permissão de câmera necessária", Toast.LENGTH_LONG).show();
-            }
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_VIDEO && resultCode == RESULT_OK && data != null) {
+            // Obtém o caminho real do vídeo selecionado
+            Uri selectedVideoUri = data.getData();
+            videoPath = getRealPathFromURI(selectedVideoUri);
+            textViewVideoPath.setText(videoPath);
+            buttonStartStreaming.setEnabled(true); // Habilita o botão de transmissão após o vídeo ser selecionado
         }
     }
 
-    private void setupTextureView() {
-        textureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
-            @Override
-            public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surfaceTexture, int width, int height) {
-                openCamera();
-            }
-
-            @Override
-            public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surfaceTexture, int width, int height) {}
-
-            @Override
-            public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture surfaceTexture) {
-                return false;
-            }
-
-            @Override
-            public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surfaceTexture) {
-                if (isStreaming) {
-                    Bitmap bitmap = textureView.getBitmap();
-                    byte[] frameData = getNV21FromBitmap(bitmap);
-
-                    if (ffmpegInputStream != null) {
-                        try {
-                            ffmpegInputStream.write(frameData);
-                            ffmpegInputStream.flush();
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    private void openCamera() {
-        CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-        try {
-            String cameraId = manager.getCameraIdList()[0];
-            CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
-            Size previewSize = new Size(600, 480);
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                return;
-            }
-            manager.openCamera(cameraId, new CameraDevice.StateCallback() {
-                @Override
-                public void onOpened(@NonNull CameraDevice camera) {
-                    cameraDevice = camera;
-                    createCameraPreview();
-                }
-
-                @Override
-                public void onDisconnected(@NonNull CameraDevice camera) {
-                    camera.close();
-                }
-
-                @Override
-                public void onError(@NonNull CameraDevice camera, int error) {
-                    camera.close();
-                    cameraDevice = null;
-                }
-            }, null);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void createCameraPreview() {
-        try {
-            SurfaceTexture texture = textureView.getSurfaceTexture();
-            assert texture != null;
-            texture.setDefaultBufferSize(600, 480);
-            Surface surface = new Surface(texture);
-            captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            captureRequestBuilder.addTarget(surface);
-
-            cameraDevice.createCaptureSession(Arrays.asList(surface), new CameraCaptureSession.StateCallback() {
-                @Override
-                public void onConfigured(@NonNull CameraCaptureSession session) {
-                    if (cameraDevice == null) {
-                        return;
-                    }
-                    cameraCaptureSession = session;
-                    updatePreview();
-                }
-
-                @Override
-                public void onConfigureFailed(@NonNull CameraCaptureSession session) {
-                    Toast.makeText(MainActivity.this, "Configuration changed", Toast.LENGTH_SHORT).show();
-                }
-            }, null);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void updatePreview() {
-        if (cameraDevice == null) {
-            return;
-        }
-        captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
-        try {
-            cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, null);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
+    private String getRealPathFromURI(Uri contentUri) {
+        // Obtém o caminho absoluto do arquivo de vídeo
+        String[] proj = {MediaStore.Video.Media.DATA};
+        Cursor cursor = getContentResolver().query(contentUri, proj, null, null, null);
+        int column_index = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATA);
+        cursor.moveToFirst();
+        return cursor.getString(column_index);
     }
 
     private void startStreaming() {
-        String cmd = "-y -f rawvideo -pix_fmt nv21 -s 600x480 -r 30 -i - -c:v libx264 -b:v 1000k -f flv " + rtmpUrl;
-        FFmpeg.executeAsync(cmd, new ExecuteCallback() {
-            @Override
-            public void apply(long executionId, int returnCode) {
-                if (returnCode == Config.RETURN_CODE_SUCCESS) {
-                    System.out.println("Streaming started successfully.");
-                } else {
-                    System.out.println("Error starting streaming.");
-                }
-            }
-        });
-    }
+        // Caminho do vídeo selecionado. Pode ser ajustado conforme necessário
+        //videoPath = "/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Video/VID-20240903-WA0044.mp4";
 
-    private void stopStreaming() {
-        if (ffmpegProcess != null) {
-            ffmpegProcess.destroy();
-            ffmpegProcess = null;
-            ffmpegInputStream = null;
+        // URL do servidor RTMP (exemplo)
+        String rtmpUrl = "rtmp://192.168.0.134/live/stream";
+
+        // Comando FFmpeg para streaming de vídeo
+        String ffmpegCommand = String.format("-re -i \"%s\" -c:v libx264 -preset veryfast -f flv \"%s\"", videoPath, rtmpUrl);
+
+        // Executa o comando FFmpeg de forma síncrona
+        int rc = FFmpeg.execute(ffmpegCommand);
+
+        // Verifica o código de retorno e loga o resultado
+        if (rc == 0) {
+            Log.i("FFmpeg", "Transmissão concluída com sucesso.");
+        } else {
+            Log.e("FFmpeg", "Erro na transmissão. Código de retorno: " + rc);
         }
     }
-
-    // Função para converter Bitmap para NV21
-    private byte[] getNV21FromBitmap(Bitmap bitmap) {
-        int inputWidth = bitmap.getWidth();
-        int inputHeight = bitmap.getHeight();
-        int[] argb = new int[inputWidth * inputHeight];
-        bitmap.getPixels(argb, 0, inputWidth, 0, 0, inputWidth, inputHeight);
-
-        byte[] nv21 = new byte[inputWidth * inputHeight * 3 / 2]; // tamanho necessário para NV21
-        encodeYUV420SP(nv21, argb, inputWidth, inputHeight);
-
-        return nv21;
-    }
-
-    private void encodeYUV420SP(byte[] yuv420sp, int[] argb, int width, int height) {
-        // Função de conversão de ARGB para NV21 (deve ser implementada)
-        // Código de conversão pode ser adicionado aqui
-    }
 }
+
