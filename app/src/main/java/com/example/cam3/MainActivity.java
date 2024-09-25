@@ -204,8 +204,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startStreaming() {
-        String cmd = "-y -f rawvideo -pix_fmt nv21 -s 600x480 -r 30 -i - -c:v libx264 -b:v 1000k -f flv " + rtmpUrl;
-        FFmpeg.executeAsync(cmd, new ExecuteCallback() {
+        //String cmd = "-y -f rawvideo -pix_fmt nv21 -s 600x480 -r 30 -i - -c:v libx264 -b:v 1000k -f flv " + rtmpUrl;
+            String[] ffmpegCommand = {
+                    "-f", "rawvideo",
+                    "-pix_fmt", "nv21",
+                    "-s", "600x480",
+                    "-r", "30",
+                    "-i", "-",
+                    "-c:v", "libx264",
+                    "-preset", "ultrafast",
+                    "-b:v", "1000k",
+                    "-f","flv",
+                    "rtmp://192.168.0.134/live/stream"
+            };
+
+
+        FFmpeg.executeAsync(ffmpegCommand, new ExecuteCallback() {
             @Override
             public void apply(long executionId, int returnCode) {
                 if (returnCode == Config.RETURN_CODE_SUCCESS) {
