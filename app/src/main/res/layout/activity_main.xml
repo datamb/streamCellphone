@@ -7,11 +7,12 @@
     <!-- Exibe a visualização da câmera -->
     <TextureView
         android:id="@+id/textureView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_width="wrap_content"
+        android:layout_height="651dp"
+        android:layout_above="@id/buttonsLayout"
         android:layout_alignParentTop="true"
-        android:layout_above="@id/buttonsLayout" />
+        android:layout_marginTop="0dp"
+        android:layout_weight="1" />
 
     <!-- Contém os botões de controle -->
     <LinearLayout

@@ -72,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
     private void setupCamera() {
         CameraManager cameraManager = (CameraManager) getSystemService(CAMERA_SERVICE);
         try {
-            String cameraId = cameraManager.getCameraIdList()[0];
+            String cameraId = cameraManager.getCameraIdList()[1];
             CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(cameraId);
 
             if (!isHardwareLevelSupported(characteristics, CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_FULL)) {
@@ -171,10 +171,25 @@ public class MainActivity extends AppCompatActivity {
             // Agora inicia a thread para codificar e enviar os dados para o servidor RTMP via FFmpeg
             new Thread(() -> {
                 // Comando FFmpeg para pegar dados do MediaCodec e transmitir
-                String ffmpegCommand = String.format(
-                        "-f lavfi -i anullsrc -f rawvideo -vcodec h264 -pix_fmt yuv420p -s 640x480 -r 30 -i - -c:v libx264 -preset veryfast -f flv %s",
-                        rtmpUrl
-                );
+                //String ffmpegCommand = String.format(
+                 //       "-f lavfi -i anullsrc -f rawvideo -vcodec h264 -pix_fmt yuv420p -s 640x480 -r 30 -i - -c:v libx264 -preset veryfast -f mpegts %s",
+                 //       rtmpUrl
+                //);
+
+                String[] ffmpegCommand = {
+                        "-re",
+                        "-f", "rawvideo",
+                        "-vcodec", "h264",
+                        "-pix_fmt", "nv21",
+                        "-s", "640x480",
+                        "-r", "30",
+                        "-i", "-",
+                        "-c:v", "libx264",
+                        "-preset", "ultrafast",
+                        "-b:v", "500k",
+                        "-f","mpegts",
+                        "rtmp://192.168.0.134/live/stream"
+                };
 
                 FFmpeg.executeAsync(ffmpegCommand, new ExecuteCallback() {
                     @Override
