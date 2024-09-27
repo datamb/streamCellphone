@@ -12,6 +12,7 @@ import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
 import android.os.Bundle;
+import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
@@ -41,6 +42,8 @@ public class MainActivity extends AppCompatActivity {
     private String rtmpUrl = "rtmp://192.168.0.134/live/stream"; // Substitua pelo seu servidor RTMP
     private Process ffmpegProcess;
     private OutputStream ffmpegInputStream;
+
+    private static final String TAG = "MainActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -204,16 +207,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startStreaming() {
+        Log.d(TAG, "passei aqui - oi bonitão...");
         //String cmd = "-y -f rawvideo -pix_fmt nv21 -s 600x480 -r 30 -i - -c:v libx264 -b:v 1000k -f flv " + rtmpUrl;
             String[] ffmpegCommand = {
+                    "y",
                     "-f", "rawvideo",
-                    "-pix_fmt", "nv21",
-                    "-s", "600x480",
-                    "-r", "30",
                     "-i", "-",
                     "-c:v", "libx264",
-                    "-preset", "ultrafast",
-                    "-b:v", "1000k",
                     "-f","flv",
                     "rtmp://192.168.0.134/live/stream"
             };
