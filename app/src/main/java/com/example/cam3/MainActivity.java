@@ -39,6 +39,8 @@ public class MainActivity extends AppCompatActivity {
     private boolean isStreaming = false;
     private String rtmpUrl = "rtmp://192.168.0.134/live/stream"; // Seu URL RTMP
 
+    private static final String TAG = "LOG";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -53,7 +55,9 @@ public class MainActivity extends AppCompatActivity {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_REQUEST_CODE);
         } else {
+            Log.d(TAG, "inicio setup cam");
             setupCamera();
+            Log.d(TAG, "fim setup cam");
         }
 
         buttonStartStreaming.setOnClickListener(v -> startStreaming());
@@ -175,19 +179,16 @@ public class MainActivity extends AppCompatActivity {
                  //       "-f lavfi -i anullsrc -f rawvideo -vcodec h264 -pix_fmt yuv420p -s 640x480 -r 30 -i - -c:v libx264 -preset veryfast -f mpegts %s",
                  //       rtmpUrl
                 //);
-
+                Log.d(TAG, "INICIO DA THREAD FFMPEG");
                 String[] ffmpegCommand = {
-                        "-re",
                         "-f", "rawvideo",
-                        "-vcodec", "h264",
-                        "-pix_fmt", "nv21",
-                        "-s", "640x480",
-                        "-r", "30",
-                        "-i", "-",
+                        "-pix_fmt", "yuv420p",
+                        "-s", "1280x720",
+                        "-i", "pipe:0",
                         "-c:v", "libx264",
                         "-preset", "ultrafast",
                         "-b:v", "500k",
-                        "-f","mpegts",
+                        "-f","flv",
                         "rtmp://192.168.0.134/live/stream"
                 };
 
